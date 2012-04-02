@@ -6,8 +6,6 @@ setlocal foldtext=WorkflowishFoldText()
 setlocal foldmethod=expr
 setlocal foldexpr=WorkflowishCompactFoldLevel(v:lnum)
 
-setlocal autoindent
-
 " Settings {{{
 
 " This will use horizontal scroll in focus mode
@@ -27,6 +25,14 @@ endif
 
 nnoremap <buffer> zq :call WorkflowishFocusToggle(line("."))<cr>
 nnoremap <buffer> zp :call WorkflowishFocusPrevious()<cr>
+nnoremap <buffer> <C-M> :call <SID>ToggleDone()<CR>
+inoremap <buffer> <BS> <C-O>:call <SID>Backspace()<CR>
+inoremap <buffer> u <C-O>:call <SID>Backslash()<CR>
+nnoremap <buffer> o ^v"byo<C-R>b 
+nnoremap <buffer> O O* 
+inoremap <buffer> <C-M> <CR>* 
+nnoremap <buffer> <C-S-BS> dd
+
 
 if g:workflowish_disable_zq_warning == 0
   nnoremap <buffer> ZQ :call WorkflowishZQWarningMessage()<cr>
@@ -77,6 +83,29 @@ function! s:PreviousIndent(lnum)
     end
   endfor
   return 0
+endfunction
+
+function! s:ToggleDone()
+  execute ':.s/\v^(\s*)(\*|\-) /\=submatch(1).(submatch(2) == "*" ? "- " : "* ")/e'
+endfunction
+
+" removes whole row when empty (only contains *)
+" otherwise use ^H  if you want to edit the *
+function! s:Backspace()
+  if getline(".") =~ '^\s*\(\*\|-\)\s*$'
+    execute ':normal! ddkA'
+  else
+    execute ':normal xA'
+  end
+endfunction
+
+function! s:Backslash()
+  if getline(".") =~ '^\s*\*\s*$'
+    execute ':normal! hr\A<C-T>'
+    "2dhA 
+  else
+    execute 'i\\'
+  end
 endfunction
 
 "}}}
