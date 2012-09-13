@@ -79,6 +79,19 @@ function! s:PreviousIndent(lnum)
   return 0
 endfunction
 
+" Like ]z, but returns a number instead of moving there.
+" Also works for lines without a fold.
+" (returns the same line, instead of the outer fold)
+function! s:EndIndent(lnum)
+  let lastindent = indent(a:lnum)
+  for line in range(a:lnum+1, line("$"))
+    if lastindent >= indent(line)
+      return line-1
+    end
+  endfor
+  return 0
+endfunction
+
 "}}}
 " Window attribute methods {{{
 " Couldn't find any other 'sane' way to initialize window variables
@@ -258,6 +271,40 @@ function! WorkflowishFocusPrevious()
     call WorkflowishFocusOn(s:PreviousIndent(s:GetFocusOn()))
   end
 endfunction
+
+"}}}
+" Feature : Search {{{
+
+" * Works like ":help //;", but only searches inside the fold for previous match
+"   * For example:
+"     * Cursor will move here _#todo when calling:
+"     * :call WorkflowishSearchInside("example", "#todo")
+"   * It will not find this example
+"     * when cursor is on line 1
+"     * it only looks for "next" match, and does not go back to find a
+"     * longer match, like regexp does #todo
+" call like, WorkflowishSearch("* Projects", "* Workflowish", "* TODO")
+" TODO: needs a better name, another method to search from cursors fold and not whole
+" document?
+function! WorkflowishSearchInside(...)
+  " TODO: yes, this could probably look better with a recursive call...
+  " and that may also be easier when trying to find the "best" path
+  for term in a:000
+    let match = searchpos(term, "n")
+    if l:match == [0, 0]
+      echo "Pattern not found: " . term
+      break
+    endif
+    let last_match = l:match
+    let end = s:EndIndent(l:match[0])
+    if l:match[0] == l:end
+      echo "Could not find more folds after: " . term
+      break
+    endif
+  endfor
+  call cursor(l:last_match)
+  normal zv
+endfunction "WorkflowishSearchInside
 
 "}}}
 " Feature : Convert {{{
